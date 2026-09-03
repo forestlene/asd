@@ -1819,6 +1819,40 @@ html.touch-device .joy-zone { display:flex !important; pointer-events:auto !impo
   #hp-bar-bg{height:14px;}#hp-text{font-size:9px;min-width:42px;}.age-bar{height:6px;}.age-text{font-size:8px;min-width:34px;}
   .inventory{padding:3px;}.inv-slot{width:calc((100vw - 42px) / 11);height:calc((100vw - 42px) / 11);}.slot-num{font-size:7px;padding:0 2px;}.bld-count-badge{display:none;}
 }
+
+/* Final compact landscape HUD: keep every control inside short phone viewports. */
+@media (max-height:480px) and (orientation:landscape) and (pointer:coarse){
+  #ui-top{top:max(env(safe-area-inset-top,0px),4px);left:max(env(safe-area-inset-left,0px),5px);right:auto;z-index:500;}
+  #ui-top > div:last-child{gap:2px;}
+  #ui-top button,.ref-hud-btn{width:28px;height:28px;font-size:14px;border-width:1.5px;border-radius:5px;}
+  #ui-top #fs-btn{font-size:17px;}
+  #left-stats-stack{top:max(env(safe-area-inset-top,0px),5px);left:auto;right:max(env(safe-area-inset-right,0px),5px);gap:3px !important;z-index:495;}
+  #resource-hud{gap:2px;padding:2px;border-width:1.5px;border-radius:5px;max-width:calc(100vw - 180px);}
+  .res-item{min-width:42px;padding:2px 4px;gap:2px;border-radius:4px;}
+  .res-icon,.res-icon img,.res-icon svg{width:15px;height:15px;}
+  .res-value{font-size:9px;letter-spacing:0;}
+  #hud-performance{display:none !important;}
+  #lb-panel{top:calc(max(env(safe-area-inset-top,0px),5px) + 34px);right:max(env(safe-area-inset-right,0px),5px);width:min(170px,35vw);max-width:35vw;padding:4px 5px;border-width:1.5px;border-radius:5px;}
+  #lb-title{font-size:8px;margin-bottom:2px;padding-bottom:2px;}
+  .lb-row{font-size:8px;padding:1px 2px;line-height:1.1;}
+  .lb-score{font-size:8px;min-width:22px;}
+  #ui-bottom{bottom:max(env(safe-area-inset-bottom,0px),4px);width:min(480px,calc(100vw - 20px));min-width:0;gap:1px;}
+  #hp-bar-bg{height:9px;border-width:1px;}
+  #hp-text{font-size:8px;min-width:38px;}
+  .age-bar{height:5px;border-width:1px;}
+  .age-text{font-size:7px;min-width:27px;}
+  .inventory{width:100%;gap:2px;padding:2px;border-width:1.5px;border-radius:5px;}
+  .inv-slot{width:32px;height:32px;min-width:0;min-height:0;border-width:1.5px;border-radius:4px;}
+  .inv-icon-canvas{width:21px;height:21px;}
+  .slot-num{font-size:6px;top:1px;left:2px;}
+  .bld-count-badge{font-size:5px;bottom:0;right:1px;}
+  .joy-zone{top:32px;bottom:48px;}
+  #joy-left,#joy-right{bottom:48px;}
+  #joy-left .joy-base,#joy-right .joy-base{width:64px;height:64px;}
+  #joy-left .joy-stick,#joy-right .joy-stick{width:24px;height:24px;}
+  #minimap{display:none;}
+  #ref-player-panel{display:none;}
+}
 /* Death result: compact forest HUD, with real player and weapon assets. */
 #death-overlay{
   background:rgba(3,8,12,.82);

@@ -12988,7 +12988,7 @@ function update(timestamp = 0) {
       const _onScr = Math.abs(e.x - camX) < canvas.width / ZOOM * 0.65 && Math.abs(e.y - camY) < canvas.height / ZOOM * 0.65;
       // FIX: Remove quality level check for resource collision - mobs must collide with resources on all quality levels
       // PERF: Still throttle to every 2nd frame for performance
-      if (globalTime % 2 === 0 && _onScr) {
+      if (false && globalTime % 2 === 0 && _onScr) {
         // Use spatial grid — only checks buildings within 120 world units (was O(N))
         var _vcNear = _sgQuery(e.x, e.y, 120);
         for (var _jvc = 0; _jvc < _vcNear.length; _jvc++) {

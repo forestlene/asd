@@ -1939,9 +1939,9 @@ function drawSkinEyesOverlay(c, R, sk, fl) {
 <div id="ui-top">
   <div style="flex:1;"></div>
   <div style="display:flex;gap:6px;pointer-events:auto;align-items:center;">
-    <button type="button" class="ref-hud-btn" title="Savunma" aria-label="Savunma">🛡</button>
-    <button type="button" class="ref-hud-btn" title="Yetenekler" aria-label="Yetenekler">⚔</button>
-    <button type="button" class="ref-hud-btn" title="Ekip" aria-label="Ekip">✋</button>
+    <button type="button" class="ref-hud-btn" onclick="_toggleSnapSettings(event)" title="Savunma ayarları" aria-label="Savunma ayarları">🛡</button>
+    <button type="button" class="ref-hud-btn" onclick="openTabScoreboard()" title="Skor tablosu" aria-label="Skor tablosu">⚔</button>
+    <button type="button" class="ref-hud-btn" onclick="openQuickChat(window.innerWidth / 2, window.innerHeight / 2)" title="Hızlı sohbet" aria-label="Hızlı sohbet">✋</button>
     <button type="button" id="settings-btn" title="Ayarlar">⚙️</button>
     <button id="fs-btn" onclick="tryFullscreen()" title="Tam Ekran">⛶</button>
     <button id="back-btn" onclick="_goToMenu()">← Menü</button>
@@ -8353,6 +8353,15 @@ function _submitScore() {
 }
 
 // Called by the HUD "← Menü" button — submits score then navigates
+function tryFullscreen() {
+  const root = document.documentElement;
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+    return;
+  }
+  root.requestFullscreen?.().catch(() => {});
+}
+
 function _goToMenu() {
   _submitScore();
   setTimeout(() => { window.location.href = _BASE; }, 120);

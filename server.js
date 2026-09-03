@@ -40,6 +40,32 @@ const clans = new Map();
 const sessions = new Map();
 const mobs = new Map();
 const mobHitCooldowns = new Map();
+const authRateLimits = new Map();
+const AUTH_LIMITS = { login: { max: 12, windowMs: 10 * 60 * 1000 }, register: { max: 5, windowMs: 60 * 60 * 1000 } };
+function requestClientKey(request) {
+  const forwarded = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return forwarded || request.socket.remoteAddress || 'unknown';
+}
+function authRateLimited(request, action) {
+  const policy = AUTH_LIMITS[action];
+  if (!policy) return false;
+  const key = `${action}:${requestClientKey(request)}`;
+  const now = Date.now();
+  const entry = authRateLimits.get(key);
+  if (!entry || now - entry.startedAt >= policy.windowMs) {
+    authRateLimits.set(key, { startedAt: now, count: 1 });
+    return false;
+  }
+  entry.count++;
+  return entry.count > policy.max;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of authRateLimits) {
+    const action = key.split(':', 1)[0];
+    if (!AUTH_LIMITS[action] || now - entry.startedAt >= AUTH_LIMITS[action].windowMs) authRateLimits.delete(key);
+  }
+}, 15 * 60 * 1000).unref();
 const MOB_TYPES = [
   { shape: 'wolf', color: '#6b4932', outline: '#28170d', eyes: '#ffcc66', typeName: '🐺 Kurt', radius: 46, hp: 300, dmg: 28, speed: 18, wanderSpeed: 10, xpReward: 80, goldReward: 35 },
   { shape: 'scorpion', color: '#4a2818', outline: '#1a0d06', eyes: '#ff4400', typeName: '🦂 Akrep', radius: 52, hp: 520, dmg: 46, speed: 15, wanderSpeed: 9, xpReward: 150, goldReward: 65 },
@@ -467,6 +493,7 @@ async function handleApi(request, response, requestPath) {
   if (request.method !== 'GET') { try { body = await readJson(request); } catch { sendJson(response, 400, { error: 'Geçersiz istek.' }); return true; } }
 
   if (requestPath === '/api/auth/register' && request.method === 'POST') {
+    if (authRateLimited(request, 'register')) { response.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '3600' }); response.end(JSON.stringify({ error: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.' })); return true; }
     const username = String(body.username || '').trim();
     const key = usernameKey(username);
     if (!/^[a-zA-Z0-9_ TürkÇĞİÖŞÜçğıöşü-]{3,20}$/.test(username)) { sendJson(response, 400, { error: 'Kullanıcı adı 3-20 karakter olmalı.' }); return true; }
@@ -502,6 +529,7 @@ async function handleApi(request, response, requestPath) {
     return true;
   }
   if (requestPath === '/api/auth/login' && request.method === 'POST') {
+    if (authRateLimited(request, 'login')) { response.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8', 'Retry-After': '600' }); response.end(JSON.stringify({ error: 'Çok fazla giriş denemesi. Lütfen 10 dakika sonra tekrar deneyin.' })); return true; }
     const user = accountData.users[usernameKey(body.username)];
     const password = String(body.password || '');
     const check = user && user.hash && user.salt && hashPassword(password, user.salt).hash;

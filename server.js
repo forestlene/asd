@@ -49,7 +49,7 @@ const MOB_TYPES = [
 const dataFile = process.env.DATA_FILE || path.join(__dirname, 'forest-data.json');
 const authSecret = process.env.AUTH_SECRET || crypto.randomBytes(32).toString('hex');
 if (!process.env.AUTH_SECRET) console.warn('[Security] AUTH_SECRET is not set; tokens will reset after restart.');
-const allowedOrigins = new Set((process.env.ALLOWED_ORIGINS || 'https://forestbrawl.fun,http://localhost:3000').split(',').map(origin => origin.trim()).filter(Boolean));
+const allowedOrigins = new Set((process.env.ALLOWED_ORIGINS || 'https://forestbrawl.fun,https://www.forestbrawl.fun,http://localhost:3000').split(',').map(origin => origin.trim()).filter(Boolean));
 let worldSeed = Math.floor(Math.random() * 0x7fffffff);
 let nextMobId = 1;
 const airdrops = new Map();
@@ -777,6 +777,8 @@ function serveStatic(request, response, requestPath) {
       'X-Frame-Options': 'SAMEORIGIN',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Cross-Origin-Resource-Policy': 'same-origin',
+      'X-DNS-Prefetch-Control': 'on',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
       'Cache-Control': isHtmlOrCode ? 'no-cache' : 'public, max-age=86400',
     });
     response.end(data);

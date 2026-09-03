@@ -4259,8 +4259,26 @@ function pushFloatingText(x, y, text, color, isBig, life) {
   const ft = _ftFreePool.length > 0 ? _ftFreePool.pop() : { x:0, y:0, text:'', alpha:1, life:0, color:'#fff', big:false };
   ft.x = x; ft.y = y; ft.text = text; ft.color = color || '#fff'; ft.big = !!isBig;
   ft.life = life || (isBig ? 55 : 35); ft.alpha = 1;
-  floatingTexts.push(ft);
+  _ftNativePush(ft);
 }
+const _ftNativePush = Array.prototype.push.bind(floatingTexts);
+floatingTexts.push = function(ft) {
+  const _cap = typeof _qualityLevel !== 'undefined' && _qualityLevel === 0 ? 8 : typeof _qualityLevel !== 'undefined' && _qualityLevel === 1 ? 14 : 22;
+  if (this.length >= _cap) {
+    const _old = this.shift();
+    if (_ftFreePool.length < _FT_POOL_SZ) _ftFreePool.push(_old);
+  }
+  if (ft && typeof ft === 'object') {
+    const _pooled = _ftFreePool.pop();
+    if (_pooled) {
+      _pooled.x = ft.x || 0; _pooled.y = ft.y || 0; _pooled.text = ft.text || '';
+      _pooled.alpha = ft.alpha == null ? 1 : ft.alpha; _pooled.life = ft.life || 35;
+      _pooled.color = ft.color || '#fff'; _pooled.big = !!ft.big;
+      return _ftNativePush(_pooled);
+    }
+  }
+  return _ftNativePush(ft);
+};
 // Pre-interned stroke style strings for 6 alpha quantization steps — avoids rgba() allocation per floating text per frame
 const _FT_STROKE_LUT = ['rgba(0,0,0,0)','rgba(0,0,0,0.2)','rgba(0,0,0,0.4)','rgba(0,0,0,0.6)','rgba(0,0,0,0.8)','rgba(0,0,0,1)'];
 let buildings = [];

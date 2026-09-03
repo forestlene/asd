@@ -2722,6 +2722,32 @@
             bgCtx.restore();
         }
 
+        function drawLiveBuilding(building, scale) {
+            const buildAssetNames = { 3: 'spikes_premium.png', 4: 'windmill_base.png', 5: 'boostpad_premium.png', 6: 'beartrap_premium.png', 7: 'turrets_premium.png', 8: 'doors_premium.png', 9: 'healpad_premium.png' };
+            const assetName = buildAssetNames[Number(building.type)];
+            if (!assetName) return;
+            const image = getLoadedImage(`/buildassets/${assetName}`);
+            if (!image.complete || image.naturalWidth <= 0) return;
+            const sizes = { 3: 112, 4: 130, 5: 130, 6: 156, 7: 116, 8: 115, 9: 130 };
+            const size = (sizes[Number(building.type)] || 112) * scale;
+            const x = Number(building.x) * scale, y = Number(building.y) * scale;
+            bgCtx.save();
+            bgCtx.translate(x, y);
+            bgCtx.rotate(Number(building.angle) || 0);
+            bgCtx.globalAlpha = .92;
+            bgCtx.drawImage(image, -size / 2, -size / 2, size, size);
+            if (Number(building.type) === 4) {
+                const blades = getLoadedImage('/buildassets/windmill_blades.png');
+                if (blades.complete && blades.naturalWidth > 0) {
+                    bgCtx.save();
+                    bgCtx.rotate((livePreview.frame * .035) % (Math.PI * 2));
+                    bgCtx.drawImage(blades, -size / 2, -size / 2, size, size);
+                    bgCtx.restore();
+                }
+            }
+            bgCtx.restore();
+        }
+
         function drawLivePreview() {
             if (!bgCtx || !livePreview.active) return false;
             choosePreviewTarget();
@@ -2748,6 +2774,7 @@
                 bgCtx.fillStyle = resource.type === 'gold' ? '#f0c33c' : resource.type === 'wood' ? '#5e8e3d' : '#9a9a8e';
                 bgCtx.beginPath(); bgCtx.arc(rx, ry, Math.max(4, Number(resource.radius || 24) * scale * .65), 0, Math.PI * 2); bgCtx.fill();
             }
+            Object.values(livePreview.buildings).forEach(building => drawLiveBuilding(building, scale));
             for (const mob of livePreview.mobs.values()) drawLiveMob(mob, Number(mob.x) * scale, Number(mob.y) * scale, scale);
             for (const player of livePreview.players.values()) {
                 const px = Number(player.x) * scale, py = Number(player.y) * scale;
@@ -2782,6 +2809,10 @@
                 socket.on('mob_spawn', mob => { if (mob?.id) livePreview.mobs.set(mob.id, mob); });
                 socket.on('mob_states', states => (states || []).forEach(mob => { const old = livePreview.mobs.get(mob.id) || {}; livePreview.mobs.set(mob.id, { ...old, ...mob }); }));
                 socket.on('mob_dead', ({ id }) => { livePreview.mobs.delete(id); choosePreviewTarget(); });
+                socket.on('build', ({ id, building }) => { if (id && building) livePreview.buildings[id] = { ...building, id }; });
+                socket.on('build_ack', ({ serverId, building }) => { if (serverId && building) livePreview.buildings[serverId] = { ...building, id: serverId }; });
+                socket.on('build_destroy', ({ id }) => { if (id) delete livePreview.buildings[id]; });
+                socket.on('build_hp_update', ({ id, hp }) => { if (id && livePreview.buildings[id]) livePreview.buildings[id].hp = hp; });
                 socket.on('disconnect', () => { livePreview.active = false; });
             } catch (error) { livePreview.active = false; }
         }

@@ -2696,12 +2696,18 @@
             const radius = Math.max(10, Number(mob.radius) || 36) * scale;
             const palette = { wolf: ['#8b765d', '#3e342b'], bear: ['#765039', '#291b13'], scorpion: ['#70452f', '#28140c'], spider: ['#59406d', '#21152d'] };
             const colors = palette[mob.shape] || palette.wolf;
+            const mobAssetNames = { wolf: 'kurt_govde.png', bear: 'bear_govde.png', scorpion: 'akrep_govde.png', spider: 'spider_abdomen.png' };
+            const mobAsset = getLoadedImage(`/mobassets/${mobAssetNames[mob.shape] || mobAssetNames.wolf}`);
             bgCtx.save();
             bgCtx.translate(x, y);
             bgCtx.fillStyle = 'rgba(0,0,0,.3)';
             bgCtx.beginPath(); bgCtx.ellipse(0, radius * .62, radius * 1.05, radius * .38, 0, 0, Math.PI * 2); bgCtx.fill();
-            bgCtx.fillStyle = colors[0]; bgCtx.strokeStyle = colors[1]; bgCtx.lineWidth = Math.max(2, radius * .12);
-            bgCtx.beginPath(); bgCtx.arc(0, 0, radius, 0, Math.PI * 2); bgCtx.fill(); bgCtx.stroke();
+            if (mobAsset.complete && mobAsset.naturalWidth > 0) {
+                bgCtx.drawImage(mobAsset, -radius * 1.2, -radius * 1.2, radius * 2.4, radius * 2.4);
+            } else {
+                bgCtx.fillStyle = colors[0]; bgCtx.strokeStyle = colors[1]; bgCtx.lineWidth = Math.max(2, radius * .12);
+                bgCtx.beginPath(); bgCtx.arc(0, 0, radius, 0, Math.PI * 2); bgCtx.fill(); bgCtx.stroke();
+            }
             if (mob.shape === 'bear') {
                 bgCtx.beginPath(); bgCtx.arc(-radius * .58, -radius * .65, radius * .36, 0, Math.PI * 2); bgCtx.arc(radius * .58, -radius * .65, radius * .36, 0, Math.PI * 2); bgCtx.fill(); bgCtx.stroke();
             } else if (mob.shape === 'scorpion') {

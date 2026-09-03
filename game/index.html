@@ -2663,7 +2663,7 @@
         const livePreview = {
             socket: null, players: new Map(), mobs: new Map(), resources: [], buildings: [],
             targetId: null, targetKind: 'mob', cameraX: 0, cameraY: 0, lastTargetChange: 0,
-            active: false, frame: 0
+            active: false, frame: 0, lastDrawAt: 0
         };
 
         function mergePreviewPlayers(batch) {
@@ -2721,6 +2721,9 @@
             choosePreviewTarget();
             const target = livePreview.targetKind === 'player' ? livePreview.players.get(livePreview.targetId) : livePreview.mobs.get(livePreview.targetId);
             if (!target) return false;
+            const now = performance.now();
+            if (now - livePreview.lastDrawAt < 33) return true;
+            livePreview.lastDrawAt = now;
             const targetX = Number(target.x) || 0, targetY = Number(target.y) || 0;
             livePreview.cameraX += (targetX - livePreview.cameraX) * 0.045;
             livePreview.cameraY += (targetY - livePreview.cameraY) * 0.045;

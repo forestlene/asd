@@ -314,6 +314,9 @@
             margin: auto;
         }
 
+        .modal-content.hidden { display: none !important; }
+        .modal-content.flex { display: flex !important; }
+
         #leadersModal.modal-content,
         #challengesModal.modal-content {
             width: min(95vw, 560px) !important;
@@ -337,6 +340,12 @@
         }
         .btn-3d:active { transform: translateY(4px); filter: brightness(0.92); }
         .btn-3d:hover { filter: brightness(1.08); }
+        .quest-reward-claiming { animation: questRewardClaim .55s ease both; pointer-events:none; }
+        .quest-reward-pop { animation: questRewardPop .7s cubic-bezier(.16,1,.3,1) both; }
+        @keyframes questRewardClaim { 50% { transform:scale(1.12) rotate(-2deg); filter:brightness(1.7); } 100% { transform:scale(.9); opacity:.35; } }
+        @keyframes questRewardPop { 0% { opacity:0; transform:translate(-50%,-45%) scale(.55); } 65% { opacity:1; transform:translate(-50%,-50%) scale(1.06); } 100% { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+        .quest-reward-particle { position:absolute; font-size:22px; animation:questParticle 1s ease-out forwards; }
+        @keyframes questParticle { from { opacity:1; transform:translate(0,0) scale(1); } to { opacity:0; transform:translate(var(--dx),var(--dy)) scale(.5); } }
 
         .btn-play {
             background: linear-gradient(180deg, #98EE4A 0%, var(--btn-green) 100%);
@@ -1249,13 +1258,13 @@
                     <i class="fa-solid fa-star text-sm text-amber-500"></i> CHALLENGES
                 </div>
                 <div class="flex items-center gap-1.5 bg-[#2f1707] border-2 border-[#5c3010] px-3 py-1 rounded-full text-[11px] font-io text-[#fcd55c]">
-                    <i class="fa-solid fa-stopwatch text-xs"></i> 19s 16dk kaldı
+                    <i class="fa-solid fa-infinity text-xs"></i> UZUN VADELİ
                 </div>
                 <button onclick="closeAllModals()" class="modal-close-btn" title="Kapat">✕</button>
             </div>
             
             <div class="text-center font-io text-xs text-[#FFDF73] stroke-text my-1">
-                Görevleri tamamla, altın 🪙 ve yıldız ⭐ ödüllerini kap!
+                Ormanda ustalaş, zor görevleri tamamla ve büyük ödülleri topla.
             </div>
 
             <div class="panel-inset p-3 max-h-[380px] overflow-y-auto flex flex-col gap-2">
@@ -1579,15 +1588,18 @@
         const ALL_MODALS = ['loginModal', 'registerModal', 'profileModal', 'settingsModal', 'serverModal', 'cosmeticsModal', 'shopModal', 'leadersModal', 'partyModal', 'helpModal', 'newsModal'];
 
         function openModal(id) {
-            document.getElementById('modalOverlay').classList.remove('hidden');
+            const overlay = document.getElementById('modalOverlay');
+            overlay.classList.remove('hidden');
+            overlay.style.display = 'flex';
             ALL_MODALS.forEach(m => {
                 const el = document.getElementById(m);
-                if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+                if (el) { el.classList.add('hidden'); el.classList.remove('flex'); el.style.display = 'none'; }
             });
             const target = document.getElementById(id);
             if (target) {
                 target.classList.remove('hidden');
                 target.classList.add('flex');
+                target.style.display = 'flex';
             }
             if (id === 'leadersModal') loadLeaderboard();
             if (id === 'cosmeticsModal') renderCosmeticsOwnedGrid();
@@ -1596,10 +1608,12 @@
         }
 
         function closeAllModals() {
-            document.getElementById('modalOverlay').classList.add('hidden');
+            const overlay = document.getElementById('modalOverlay');
+            overlay.classList.add('hidden');
+            overlay.style.display = 'none';
             ALL_MODALS.forEach(m => {
                 const el = document.getElementById(m);
-                if (el) { el.classList.add('hidden'); el.classList.remove('flex'); }
+                if (el) { el.classList.add('hidden'); el.classList.remove('flex'); el.style.display = 'none'; }
             });
         }
 
@@ -2282,15 +2296,15 @@
            9. CHALLENGES / GÖREVLER (TAMING.IO SCREENSHOT 3 BİREBİR)
         ════════════════════════════════════════════════════════════════ */
         const QUESTS_LIST = [
-            { id: 'q_wolf_5', title: 'Kill 5 wild wolves', desc: 'You can kill with a weapon or a pet', icon: '🐺', key: 'wolves', target: 5, rewardCoins: 250, rewardXp: 200 },
-            { id: 'q_bear_2', title: 'Hunt 2 wild bears', desc: 'Defeat wild forest bears in battle', icon: '🐻', key: 'bears', target: 2, rewardCoins: 500, rewardXp: 400 },
-            { id: 'q_scorpion_3', title: 'Defeat 3 desert scorpions', desc: 'Hunt scorpions in the desert sands', icon: '🦂', key: 'scorpions', target: 3, rewardCoins: 350, rewardXp: 250 },
-            { id: 'q_spider_3', title: 'Exterminate 3 spiders', desc: 'Clean poisonous spiders from the caves', icon: '🕷️', key: 'spiders', target: 3, rewardCoins: 300, rewardXp: 220 },
-            { id: 'q_pvp_kill_1', title: 'Slay 1 enemy player', desc: 'Prove your power in glorious PvP combat', icon: '⚔️', key: 'kills', target: 1, rewardCoins: 400, rewardXp: 300 },
-            { id: 'q_bounty_king_1', title: 'Dethrone the Gold King', desc: 'Kill the reigning bounty king', icon: '👑', key: 'kingKills', target: 1, rewardCoins: 650, rewardXp: 500 },
-            { id: 'q_airdrop_1', title: 'Discover 1 Airdrop Chest', desc: 'Secure high-value treasure drops on the map', icon: '📦', key: 'airdrops', target: 1, rewardCoins: 350, rewardXp: 300 },
-            { id: 'q_build_15', title: 'Construct 15 buildings', desc: 'Place spike walls, turrets or windmills', icon: '🪵', key: 'buildings', target: 15, rewardCoins: 200, rewardXp: 150 },
-            { id: 'q_gold_1000', title: 'Gather 10,000 gold', desc: 'Chop trees, mine rocks or farm windmills', icon: '🪙', key: 'gold', target: 1000, rewardCoins: 500, rewardXp: 400 }
+            { id: 'q_wolf_100', title: 'Kurt Sürüsünün Sonu', desc: 'Ormanda 100 vahşi kurt avla', icon: '🐺', key: 'wolves', target: 100, rewardCoins: 1800, rewardXp: 1600 },
+            { id: 'q_bear_40', title: 'Ayıların Efendisi', desc: '40 orman ayısını savaşta alt et', icon: '🐻', key: 'bears', target: 40, rewardCoins: 3200, rewardXp: 3000 },
+            { id: 'q_scorpion_60', title: 'Çölün Zehir Ustası', desc: 'Çölde 60 akrebi yok et', icon: '🦂', key: 'scorpions', target: 60, rewardCoins: 2800, rewardXp: 2600 },
+            { id: 'q_spider_60', title: 'Mağara Temizliği', desc: '60 zehirli örümceği ortadan kaldır', icon: '🕷️', key: 'spiders', target: 60, rewardCoins: 2800, rewardXp: 2600 },
+            { id: 'q_pvp_kill_25', title: 'Arena Celladı', desc: '25 düşman oyuncuyu PvP’de katlet', icon: '⚔️', key: 'kills', target: 25, rewardCoins: 5000, rewardXp: 4500 },
+            { id: 'q_bounty_king_3', title: 'Altın Kralların Sonu', desc: '3 kez hüküm süren ödül kralını indir', icon: '👑', key: 'kingKills', target: 3, rewardCoins: 6500, rewardXp: 6000 },
+            { id: 'q_airdrop_10', title: 'Airdrop Avcısı', desc: '10 yüksek değerli airdrop sandığı aç', icon: '📦', key: 'airdrops', target: 10, rewardCoins: 4200, rewardXp: 4000 },
+            { id: 'q_build_100', title: 'Orman Kalesi', desc: '100 savunma yapısı inşa et', icon: '🪵', key: 'buildings', target: 100, rewardCoins: 3500, rewardXp: 3200 },
+            { id: 'q_gold_10000', title: 'Ormanın Hazinedarı', desc: 'Kaynaklardan toplam 10.000 altın çıkar', icon: '🪙', key: 'gold', target: 10000, rewardCoins: 6000, rewardXp: 5500 }
         ];
 
         function getFullQuestProgress() {
@@ -2335,7 +2349,7 @@
                     `;
                 } else if (isCompleted) {
                     actionHtml = `
-                        <button onclick="claimQuestReward('${q.id}')" class="btn-3d btn-play px-3 py-2 font-io text-xs stroke-text shadow-lg animate-pulse min-w-[72px]">
+                        <button id="claim-${q.id}" onclick="claimQuestReward('${q.id}')" class="btn-3d btn-play px-3 py-2 font-io text-xs stroke-text shadow-lg animate-pulse min-w-[72px]">
                             AL 🎁
                         </button>
                     `;
@@ -2368,9 +2382,29 @@
             }).join('');
         }
 
+        function showQuestRewardAnimation(quest) {
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 z-[120] pointer-events-none';
+            overlay.innerHTML = `<div class="quest-reward-pop absolute left-1/2 top-1/2 bg-[#fff7dc] border-[4px] border-[#3c1e08] rounded-2xl px-7 py-5 text-center shadow-[0_8px_0_#3c1e08,0_18px_40px_rgba(0,0,0,.55)]"><div class="text-4xl">${quest.icon}</div><div class="font-io text-xl text-[#3c1e08]">GÖREV TAMAMLANDI!</div><div class="font-io text-lg text-[#b87512]">+${quest.rewardCoins} 🪙 &nbsp; +${quest.rewardXp} XP</div></div>`;
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('span');
+                particle.className = 'quest-reward-particle';
+                particle.textContent = i % 2 ? '⭐' : '🪙';
+                particle.style.left = '50%';
+                particle.style.top = '50%';
+                particle.style.setProperty('--dx', `${Math.cos(i * Math.PI / 6) * (90 + Math.random() * 90)}px`);
+                particle.style.setProperty('--dy', `${Math.sin(i * Math.PI / 6) * (70 + Math.random() * 100)}px`);
+                overlay.appendChild(particle);
+            }
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 1500);
+        }
+
         async function claimQuestReward(questId) {
             const quest = QUESTS_LIST.find(q => q.id === questId);
             if (!quest) return;
+            const claimButton = document.getElementById(`claim-${questId}`);
+            if (claimButton) claimButton.classList.add('quest-reward-claiming');
 
             if (_authToken) {
                 try {
@@ -2384,6 +2418,7 @@
                     });
                     const data = await res.json();
                     if (!res.ok) {
+                        if (claimButton) claimButton.classList.remove('quest-reward-claiming');
                         triggerToast(data.error || 'Ödül alınamadı.', 'fa-triangle-exclamation');
                         return;
                     }
@@ -2392,6 +2427,7 @@
                         localStorage.setItem('fb_auth_user', JSON.stringify(data.user));
                     }
                 } catch(e) {
+                    if (claimButton) claimButton.classList.remove('quest-reward-claiming');
                     triggerToast('Sunucu bağlantı hatası.', 'fa-triangle-exclamation');
                     return;
                 }
@@ -2406,6 +2442,7 @@
                 localStorage.setItem('fb_total_xp', currentXp);
             }
 
+            showQuestRewardAnimation(quest);
             triggerToast(`🎉 +${quest.rewardCoins} Altın ve +${quest.rewardXp} XP Alındı!`, 'fa-star');
             playSfx('buy');
             updateChallengeProgress();

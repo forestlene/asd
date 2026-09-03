@@ -2791,8 +2791,16 @@ window.addEventListener('wheel', (e) => {
   _userZoomMultiplier = Math.max(0.88, Math.min(1.22, _userZoomMultiplier + delta));
 }, { passive: true });
 
-// No-op placeholder for quest progress (replaced when viral features IIFE runs)
-window._updateQuestProgress = function(){};
+function _trackQuestProgress(key, amount = 1) {
+  const normalizedKey = key === 'builds' ? 'buildings' : key === 'chests' ? 'airdrops' : key;
+  if (!normalizedKey || !Number.isFinite(Number(amount))) return;
+  try {
+    const progress = JSON.parse(localStorage.getItem('fb_quest_prog') || '{}');
+    progress[normalizedKey] = Math.max(0, Number(progress[normalizedKey] || 0) + Number(amount));
+    localStorage.setItem('fb_quest_prog', JSON.stringify(progress));
+  } catch (error) {}
+}
+window._updateQuestProgress = _trackQuestProgress;
 window._showAchPopup = function(){};
 
 // ── Minimap offscreen BG cache (biome zones drawn once, never re-drawn) ────
@@ -17248,7 +17256,7 @@ function _scheduleQuestSave(){
   }, 6000);
 }
 
-window._updateQuestProgress = function() {};
+window._updateQuestProgress = _trackQuestProgress;
 
 var _questPanel  = null;
 var _questBody   = null;

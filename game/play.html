@@ -4236,7 +4236,7 @@ const _buildingsMap = new Map(); // _netId → bina nesnesi
 
 // Çarpışma konfigürasyonu — hiçbir kaynağın içinden geçilmez
 const _RES_COL_FRAC = { wood: 0.65, stone: 0.82, gold: 0.80, apple: 0.65, bush: 0.60, mushroom: 0.55, crystal: 0.60, hive: 0.58 };
-const _BLD_RADII    = {3:34, 4:44, 7:32, 8:24, 9:52};
+const _BLD_RADII    = {3:34, 4:44, 5:65, 6:78, 7:32, 8:24, 9:52, 10:30};
 const _P_COL_R      = 370; // oyuncu + en büyük kaynak yarıçapı + güvenlik payı
 // checkHits içinde kullanılan sabit — her çağrıda yeniden oluşturulmamalı
 const _RES_HIT_FRAC = { wood: 0.85, stone: 0.85, gold: 0.85, apple: 0.85, bush: 0.75, mushroom: 0.70, crystal: 0.75, hive: 0.75 };
@@ -11007,20 +11007,6 @@ function drawEnemy(e) {
   // HP bar
   drawHpBar(e.x, e.y - R - 14, e.hp, e.maxHp, Math.max(55, R * 1.6), 0);
 
-  // Mob name tag
-  if (e.typeName) {
-    ctx.save();
-    ctx.font = 'bold 11px Nunito,Arial,sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    ctx.strokeText(e.typeName, e.x, e.y - R - 16);
-    ctx.fillStyle = '#fff';
-    ctx.fillText(e.typeName, e.x, e.y - R - 16);
-    ctx.restore();
-  }
-
   // Aggro alert — red speech bubble "!" when first aggroed (one-shot pulse)
   if (e.provoked) {
     if (!e._wasProvoked) { e._wasProvoked = true; e._aggroPulse = 40; }
@@ -13201,7 +13187,7 @@ function update(timestamp = 0) {
         spawnBlood(player.x, player.y, 9);
         playSound(95 + Math.floor(Math.random()*40), 0.16, 'sawtooth', 0.3);
         triggerDmgFlash();
-        floatingTexts.push({ x: player.x, y: player.y - 50, text: `-${reducedDmg} HP (${e.typeName || 'Düşman'})`, alpha: 1, life: 45, color: '#ff3333', big: true });
+        floatingTexts.push({ x: player.x, y: player.y - 50, text: `-${reducedDmg} HP`, alpha: 1, life: 45, color: '#ff3333', big: true });
         if (player._thorns) { const _td=Math.round(reducedDmg*0.20); e.hp-=_td; e.hitFlash=8; floatingTexts.push({x:e.x,y:e.y-22,text:'🌑 -'+_td,alpha:1,life:28,color:'#cc44ff'}); }
         updateHpBar();
         if (player.hp <= 0 && !_isDying) { die(); break; }
@@ -14035,13 +14021,15 @@ function update(timestamp = 0) {
   // Layer 4: building HP bars — visible to everyone when damaged; fade back after 2s when healthy
   for (let _bi = 0; _bi < _vbAll.length; _bi++) {
     const b = _vbAll[_bi];
-    const _hpShow = b.hp < b.maxHp || b.hitTimer > 0 || (b._hpBarVisibleUntil || 0) > globalTime;
+    const _bMaxHp = Math.max(1, Number(b.maxHp) || Number(b.hp) || 1);
+    const _bHp = Math.max(0, Math.min(_bMaxHp, Number(b.hp) || 0));
+    const _hpShow = _bHp < _bMaxHp || b.hitTimer > 0 || (b._hpBarVisibleUntil || 0) > globalTime;
     if (!_hpShow) continue;
-    const _bHpR = Math.max(0, b.hp / b.maxHp);
+    const _bHpR = _bHp / _bMaxHp;
     const _bRad  = _BLD_RADII[b.type] || 36;
     const _bBx   = b.x, _bBy = b.y - _bRad - 18;
     const _bBw   = 66, _bBh = 9;
-    const _fade = b.hp >= b.maxHp && b.hitTimer <= 0 ? Math.max(0, 1 - ((globalTime - (b._hpBarVisibleUntil || globalTime)) / 20)) : 1;
+    const _fade = _bHp >= _bMaxHp && b.hitTimer <= 0 ? Math.max(0, 1 - ((globalTime - (b._hpBarVisibleUntil || globalTime)) / 20)) : 1;
     ctx.save();
     ctx.globalAlpha = Math.min(1, Math.max(0.15, _fade));
     ctx.fillStyle = 'rgba(0,0,0,0.72)';

@@ -2659,6 +2659,124 @@
         }
         window.addEventListener('resize', resizeBackground);
 
+        // Lightweight live spectator: receives authoritative positions without joining the game.
+        const livePreview = {
+            socket: null, players: new Map(), mobs: new Map(), resources: [], buildings: [],
+            targetId: null, targetKind: 'mob', cameraX: 0, cameraY: 0, lastTargetChange: 0,
+            active: false, frame: 0
+        };
+
+        function mergePreviewPlayers(batch) {
+            if (!batch || typeof batch !== 'object') return;
+            Object.entries(batch).forEach(([id, state]) => {
+                const previous = livePreview.players.get(id) || {};
+                livePreview.players.set(id, { ...previous, ...state, x: Number(state.x ?? previous.x ?? 0), y: Number(state.y ?? previous.y ?? 0) });
+            });
+        }
+
+        function choosePreviewTarget(forcePlayer = false) {
+            const availablePlayers = [...livePreview.players.entries()].filter(([, p]) => (p.hp ?? 1) > 0);
+            if (availablePlayers.length > 0) {
+                const preferred = forcePlayer ? availablePlayers.at(-1) : availablePlayers.find(([id]) => id === livePreview.targetId) || availablePlayers.at(-1);
+                livePreview.targetKind = 'player';
+                livePreview.targetId = preferred[0];
+                livePreview.lastTargetChange = Date.now();
+                return;
+            }
+            const availableMobs = [...livePreview.mobs.values()].filter(mob => (mob.hp ?? 1) > 0);
+            if (availableMobs.length > 0 && (!livePreview.targetId || livePreview.targetKind !== 'mob' || Date.now() - livePreview.lastTargetChange > 6000)) {
+                const mob = availableMobs[Math.floor(Math.random() * availableMobs.length)];
+                livePreview.targetKind = 'mob';
+                livePreview.targetId = mob.id;
+                livePreview.lastTargetChange = Date.now();
+            }
+        }
+
+        function drawLiveMob(mob, x, y, scale) {
+            const radius = Math.max(10, Number(mob.radius) || 36) * scale;
+            const palette = { wolf: ['#8b765d', '#3e342b'], bear: ['#765039', '#291b13'], scorpion: ['#70452f', '#28140c'], spider: ['#59406d', '#21152d'] };
+            const colors = palette[mob.shape] || palette.wolf;
+            bgCtx.save();
+            bgCtx.translate(x, y);
+            bgCtx.fillStyle = 'rgba(0,0,0,.3)';
+            bgCtx.beginPath(); bgCtx.ellipse(0, radius * .62, radius * 1.05, radius * .38, 0, 0, Math.PI * 2); bgCtx.fill();
+            bgCtx.fillStyle = colors[0]; bgCtx.strokeStyle = colors[1]; bgCtx.lineWidth = Math.max(2, radius * .12);
+            bgCtx.beginPath(); bgCtx.arc(0, 0, radius, 0, Math.PI * 2); bgCtx.fill(); bgCtx.stroke();
+            if (mob.shape === 'bear') {
+                bgCtx.beginPath(); bgCtx.arc(-radius * .58, -radius * .65, radius * .36, 0, Math.PI * 2); bgCtx.arc(radius * .58, -radius * .65, radius * .36, 0, Math.PI * 2); bgCtx.fill(); bgCtx.stroke();
+            } else if (mob.shape === 'scorpion') {
+                bgCtx.lineWidth = Math.max(2, radius * .08);
+                for (const side of [-1, 1]) { bgCtx.beginPath(); bgCtx.moveTo(side * radius * .55, -radius * .2); bgCtx.lineTo(side * radius * 1.35, -radius * .65); bgCtx.lineTo(side * radius * 1.45, radius * .25); bgCtx.stroke(); }
+            } else if (mob.shape === 'spider') {
+                bgCtx.lineWidth = Math.max(2, radius * .07);
+                for (let i = 0; i < 4; i++) { const legY = (i - 1.5) * radius * .35; bgCtx.beginPath(); bgCtx.moveTo(-radius * .35, legY); bgCtx.lineTo(-radius * 1.25, legY - radius * .35); bgCtx.moveTo(radius * .35, legY); bgCtx.lineTo(radius * 1.25, legY - radius * .35); bgCtx.stroke(); }
+            }
+            bgCtx.fillStyle = '#f8df82';
+            bgCtx.beginPath(); bgCtx.arc(radius * .35, -radius * .2, Math.max(2, radius * .1), 0, Math.PI * 2); bgCtx.arc(radius * .35, radius * .2, Math.max(2, radius * .1), 0, Math.PI * 2); bgCtx.fill();
+            bgCtx.restore();
+        }
+
+        function drawLivePreview() {
+            if (!bgCtx || !livePreview.active) return false;
+            choosePreviewTarget();
+            const target = livePreview.targetKind === 'player' ? livePreview.players.get(livePreview.targetId) : livePreview.mobs.get(livePreview.targetId);
+            if (!target) return false;
+            const targetX = Number(target.x) || 0, targetY = Number(target.y) || 0;
+            livePreview.cameraX += (targetX - livePreview.cameraX) * 0.045;
+            livePreview.cameraY += (targetY - livePreview.cameraY) * 0.045;
+            const scale = Math.min(bgW / 1050, bgH / 760);
+            bgCtx.fillStyle = '#446e29'; bgCtx.fillRect(0, 0, bgW, bgH);
+            bgCtx.save();
+            bgCtx.translate(bgW / 2 - livePreview.cameraX * scale, bgH / 2 - livePreview.cameraY * scale);
+            bgCtx.fillStyle = '#b88c28'; bgCtx.fillRect(-7200 * scale, -7200 * scale, 14400 * scale, 14400 * scale);
+            bgCtx.strokeStyle = 'rgba(45,65,28,.28)'; bgCtx.lineWidth = 2;
+            const grid = 180 * scale;
+            for (let x = -7200 * scale; x < 7200 * scale; x += grid) { bgCtx.beginPath(); bgCtx.moveTo(x, -7200 * scale); bgCtx.lineTo(x, 7200 * scale); bgCtx.stroke(); }
+            for (let y = -7200 * scale; y < 7200 * scale; y += grid) { bgCtx.beginPath(); bgCtx.moveTo(-7200 * scale, y); bgCtx.lineTo(7200 * scale, y); bgCtx.stroke(); }
+            for (const resource of livePreview.resources) {
+                const rx = Number(resource.x) * scale, ry = Number(resource.y) * scale;
+                if (Math.abs(rx - (bgW / 2 - livePreview.cameraX * scale)) > bgW * .7 || Math.abs(ry - (bgH / 2 - livePreview.cameraY * scale)) > bgH * .7) continue;
+                bgCtx.fillStyle = resource.type === 'gold' ? '#f0c33c' : resource.type === 'wood' ? '#5e8e3d' : '#9a9a8e';
+                bgCtx.beginPath(); bgCtx.arc(rx, ry, Math.max(4, Number(resource.radius || 24) * scale * .65), 0, Math.PI * 2); bgCtx.fill();
+            }
+            for (const mob of livePreview.mobs.values()) drawLiveMob(mob, Number(mob.x) * scale, Number(mob.y) * scale, scale);
+            for (const player of livePreview.players.values()) {
+                const px = Number(player.x) * scale, py = Number(player.y) * scale;
+                const weaponId = typeof (player.w || player.weapon) === 'string' ? (player.w || player.weapon) : 'ki_tier_0';
+                drawExactInGamePlayer(bgCtx, px, py, player.sk || player.skin || 'wolf', weaponId, livePreview.frame, Math.max(.28, scale * .65));
+            }
+            bgCtx.restore();
+            livePreview.frame++;
+            return true;
+        }
+
+        function startLivePreview() {
+            if (typeof io !== 'function') return;
+            try {
+                const socket = io({ path: '/api/socket.io', transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 4, timeout: 4000 });
+                livePreview.socket = socket;
+                socket.on('connect', () => { socket.emit('spectate'); });
+                socket.on('welcome', data => {
+                    livePreview.active = true;
+                    livePreview.players.clear(); livePreview.mobs.clear();
+                    mergePreviewPlayers(data.players);
+                    (data.mobs || []).forEach(mob => livePreview.mobs.set(mob.id, mob));
+                    livePreview.resources = Array.isArray(data.resources) ? data.resources.slice(0, 900) : [];
+                    livePreview.buildings = data.buildings || {};
+                    choosePreviewTarget(true);
+                });
+                socket.on('players', mergePreviewPlayers);
+                socket.on('player_join', ({ id, state }) => { mergePreviewPlayers({ [id]: state }); choosePreviewTarget(true); });
+                socket.on('player_respawn', ({ id, state }) => mergePreviewPlayers({ [id]: state }));
+                socket.on('player_left', ({ id }) => { livePreview.players.delete(id); choosePreviewTarget(); });
+                socket.on('player_dead', ({ id }) => { const player = livePreview.players.get(id); if (player) player.hp = 0; choosePreviewTarget(); });
+                socket.on('mob_spawn', mob => { if (mob?.id) livePreview.mobs.set(mob.id, mob); });
+                socket.on('mob_states', states => (states || []).forEach(mob => { const old = livePreview.mobs.get(mob.id) || {}; livePreview.mobs.set(mob.id, { ...old, ...mob }); }));
+                socket.on('mob_dead', ({ id }) => { livePreview.mobs.delete(id); choosePreviewTarget(); });
+                socket.on('disconnect', () => { livePreview.active = false; });
+            } catch (error) { livePreview.active = false; }
+        }
+
         // Canlı Harita Nesneleri (Gerçek Oyun Verileri)
         const SIM_TREES = [
             { x: -320, y: -200, radius: 52, shake: 0 },
@@ -2819,6 +2937,11 @@
         // CANLI GERÇEK OYUN ARKA PLAN SİMÜLASYON DÖNGÜSÜ
         function animateMenu() {
             _animFrame++;
+
+            if (drawLivePreview()) {
+                requestAnimationFrame(animateMenu);
+                return;
+            }
 
             if (bgCtx) {
                 // Kamera Yavaş Sinüzoidal Gezinme
@@ -3274,7 +3397,7 @@
             checkAuthStatus();
             pingServer();
             setInterval(pingServer, 15000);
-            
+            startLivePreview();
             animateMenu();
         });
     </script>

@@ -7211,7 +7211,6 @@ function checkHits() {
         if (player.vampire) { player.hp = Math.min(player.maxHp, player.hp + 12); updateHpBar(); floatingTexts.push({ x: player.x, y: player.y - 40, text: '🧛 +12 HP', alpha: 1, life: 35, color: '#cc55ff' }); }
         if(Math.random()<0.22) spawnArmorDrop(e.x,e.y);
         spawnLoot(e.x, e.y, goldDrop);
-        pushKillFeed(`⚔️ ${player.name} → ${e.typeName || 'Düşman'} öldürdü! +${scoreGain}⭐`);
         floatingTexts.push({ x: e.x, y: e.y - 55, text: `+${xpGain} XP  +${scoreGain}⭐`, alpha: 1, life: 50, color: '#ffe555' });
         // PERF: swap-and-pop O(1) removal — safe since we iterate backward
         enemies[i] = enemies[enemies.length - 1]; enemies.pop();
@@ -7474,7 +7473,7 @@ function updateArrows(){
             const xpGain=e.xp; const goldDrop=e.gold+(Math.random()<0.3?1:0);
             player.xp+=xpGain; updateXP(); player.gold+=goldDrop; updateUI();
             player.kills++; _playerLevelKills++; _checkPlayerLevel();
-            recordKill(); pushKillFeed(`🏹 ${player.name} → ${e.typeName||e.name} öldürdü! +${goldDrop}💰`);
+            recordKill();
             floatingTexts.push({x:e.x,y:e.y-55,text:'+'+xpGain+' XP',alpha:1,life:45,color:'#a0e8ff'});
             if(Math.random()<0.25) spawnArmorDrop(e.x,e.y);
             spawnLoot(e.x,e.y,goldDrop);
@@ -12945,7 +12944,6 @@ function update(timestamp = 0) {
             player.xp += e2.xp; player.gold += e2.gold; player.kills++;
             player.score = (player.score||0) + _tScoreGain;
             spawnBlood(e2.x, e2.y, 16);
-            pushKillFeed(`🔫 Taret ${e2.typeName||e2.name} öldürdü! +${_tScoreGain}⭐`);
             enemies.splice(j, 1); updateUI();
           }
         }
@@ -13590,6 +13588,8 @@ function update(timestamp = 0) {
   for (let _bi = 0, _bLen = buildings.length; _bi < _bLen; _bi++) {
     const b = buildings[_bi];
     if (_BLD_RADII[b.type] === undefined || b.hp <= 0) continue;
+    if (b.type === 5) continue;
+    if (b.type === 6 && (b._ownerId === _mySocketId || (!b._ownerId && !b._remote))) continue;
     if (Math.abs(b.x - player.x) > _P_COL_R || Math.abs(b.y - player.y) > _P_COL_R) continue;
     if (_trapCaughtBy && (b._netId === _trapCaughtBy || b.id === _trapCaughtBy)) continue;
     if (_solidCount >= _SOLID_POOL.length) break;
@@ -15666,14 +15666,6 @@ function initMultiplayer() {
     if (player.vampire) { player.hp = Math.min(player.maxHp, player.hp + 12); updateHpBar(); floatingTexts.push({ x: player.x, y: player.y - 40, text: '🧛 +12 HP', alpha: 1, life: 35, color: '#cc55ff' }); }
     if(Math.random()<0.22) spawnArmorDrop(player.x, player.y);
     floatingTexts.push({ x: player.x, y: player.y - 55, text: `⚔️ +${xp} XP  +${_bcScoreGain}⭐`, alpha: 1, life: 50, color: '#ffe555' });
-    pushKillFeed(`⚔️ ${player.name} → ${typeName||'Düşman'} öldürdü! +${_bcScoreGain}⭐`);
-  });
-
-  // ── Mob kill feed for everyone (no rewards, just announcement) ────────
-  _socket.on('mob_killed_broadcast', ({ typeName, killerName }) => {
-    if (killerName && killerName !== player.name) {
-      pushKillFeed(`⚔️ ${killerName} → ${typeName||'Düşman'} öldürdü!`);
-    }
   });
 
   // ── Instant mob HP/hitFlash update on hit ─────────────────────────────

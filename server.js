@@ -1840,7 +1840,6 @@ io.on('connection', (socket) => {
         score: Math.round((mob.xpReward || 35) * 0.75 + (mob.goldReward || 15) * 3),
         typeName: mob.typeName
       });
-      io.emit('mob_killed_broadcast', { typeName: mob.typeName, killerName: attacker.name || 'Oyuncu' });
       setTimeout(() => {
         if (players.size > 0) ensureMobs();
       }, 4000 + Math.random() * 2000);
